@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Clientes</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            margin: 40px;
+            background-color: #f4f4f9;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: auto;
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        h2 {
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+        }
+        
+        form {
+            display: grid;
+            gap: 15px;
+            grid-template-columns: 1fr 1fr;
+            margin-bottom: 30px;
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        
+        input {
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        
+        button.btn-guardar {
+            padding: 12px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            grid-column: span 2;
+            font-weight: bold;
+        }
+        
+        button.btn-guardar:hover {
+            background-color: #218838;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        
+        th,
+        td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        
+        th {
+            background-color: #f8f9fa;
+            color: #666;
+            text-transform: uppercase;
+            font-size: 12px;
+        }
+        
+        tr:hover {
+            background-color: #fcfcfc;
+        }
+        
+        .btn-borrar {
+            background-color: #ff4d4d;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        
+        .btn-borrar:hover {
+            background-color: #cc0000;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <h2>Registro de Clientes</h2>
+        <form id="clienteForm">
+            <input type="text" id="apellido" placeholder="Apellido" required>
+            <input type="text" id="nombre" placeholder="Nombre" required>
+            <input type="text" id="cuit" placeholder="CUIT (Solo números)" inputmode="numeric" required>
+            <input type="text" id="tel" placeholder="Teléfono (Solo números)" inputmode="numeric" required>
+            <button type="submit" class="btn-guardar">Guardar Cliente</button>
+        </form>
+
+        <h2>Lista de Clientes</h2>
+        <table id="tablaClientes">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Apellido</th>
+                    <th>Nombre</th>
+                    <th>CUIT</th>
+                    <th>Teléfono</th>
+                    <th>Acción</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <script>
+        const form = document.getElementById('clienteForm');
+        const tablaBody = document.querySelector('#tablaClientes tbody');
+
+        // Filtro para solo números
+        const validarNumeros = (e) => e.target.value = e.target.value.replace(/\D/g, '');
+        document.getElementById('cuit').addEventListener('input', validarNumeros);
+        document.getElementById('tel').addEventListener('input', validarNumeros);
+
+        // Cargar Clientes
+        async function cargarClientes() {
+            const res = await fetch('/clientes');
+            const clientes = await res.json();
+            tablaBody.innerHTML = '';
+            clientes.forEach(c => {
+                tablaBody.innerHTML += `
+                <tr>
+                    <td>${c.id}</td>
+                    <td>${c.apellido}</td>
+                    <td>${c.nombre}</td>
+                    <td>${c.cuit}</td>
+                    <td>${c.tel}</td>
+                    <td><button class="btn-borrar" onclick="eliminarCliente(${c.id})">Eliminar</button></td>
+                </tr>`;
+            });
+        }
+
+        // Guardar Cliente
+        form.addEventListener('submit', async(e) => {
+            e.preventDefault();
+            const nuevo = {
+                apellido: document.getElementById('apellido').value,
+                nombre: document.getElementById('nombre').value,
+                cuit: document.getElementById('cuit').value,
+                tel: document.getElementById('tel').value
+            };
+            await fetch('/add-cliente', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(nuevo)
+            });
+            form.reset();
+            cargarClientes();
+        });
+
+        // Eliminar Cliente
+        async function eliminarCliente(id) {
+            if (confirm('¿Estás seguro de eliminar este cliente?')) {
+                await fetch(`/delete-cliente/${id}`, {
+                    method: 'DELETE'
+                });
+                cargarClientes();
+            }
+        }
+
+        cargarClientes();
+    </script>
+</body>
+
+</html>
