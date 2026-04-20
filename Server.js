@@ -6,25 +6,30 @@ const app = express();
 app.use(express.json());
 app.use(express.static(__dirname));
 
+// CONFIGURACIÓN PARA RENDER + SUPABASE
 const pool = new Pool({
-    user: 'postgres',
-    host: 'localhost',
-    database: 'postgres',
-    password: 'admin',
-    port: 5432,
+    // Render leerá automáticamente la URL que pegamos en Environment Variables
+    connectionString: process.env.DATABASE_URL,
+    ssl: {
+        rejectUnauthorized: false // Esto es obligatorio para conectar con Supabase
+    }
 });
 
 const initDB = async() => {
-    await pool.query(`
-        CREATE TABLE IF NOT EXISTS clientes (
-            id SERIAL PRIMARY KEY,
-            apellido TEXT,
-            nombre TEXT,
-            cuit TEXT,
-            tel TEXT
-        )
-    `);
-    console.log("Tabla lista en el motor PostgreSQL.");
+    try {
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS clientes (
+                id SERIAL PRIMARY KEY,
+                apellido TEXT,
+                nombre TEXT,
+                cuit TEXT,
+                tel TEXT
+            )
+        `);
+        console.log("Conectado a Supabase: Tabla lista.");
+    } catch (err) {
+        console.error("Error al conectar con la base de datos:", err);
+    }
 };
 initDB();
 
@@ -51,10 +56,12 @@ app.get('/clientes', async(req, res) => {
 app.delete('/delete-cliente/:id', async(req, res) => {
     try {
         await pool.query('DELETE FROM clientes WHERE id = $1', [req.params.id]);
-        res.json({ message: "Eliminado del motor" });
+        res.json({ message: "Eliminado de Supabase" });
     } catch (err) {
         res.status(500).send(err.message);
     }
 });
 
-app.listen(3000, () => console.log('Corriendo en http://localhost:3000'));
+// PUERTO DINÁMICO: Render usa process.env.PORT, localmente usa el 3000
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Servidor activo en puerto ${PORT}`));
