@@ -79,10 +79,6 @@
             font-size: 12px;
         }
         
-        tr:hover {
-            background-color: #fcfcfc;
-        }
-        
         .btn-borrar {
             background-color: #ff4d4d;
             color: white;
@@ -131,30 +127,36 @@
         const form = document.getElementById('clienteForm');
         const tablaBody = document.querySelector('#tablaClientes tbody');
 
-        // Filtro para solo números
         const validarNumeros = (e) => e.target.value = e.target.value.replace(/\D/g, '');
         document.getElementById('cuit').addEventListener('input', validarNumeros);
         document.getElementById('tel').addEventListener('input', validarNumeros);
 
-        // Cargar Clientes
+        // CARGAR CLIENTES
         async function cargarClientes() {
-            const res = await fetch('/clientes');
-            const clientes = await res.json();
-            tablaBody.innerHTML = '';
-            clientes.forEach(c => {
-                tablaBody.innerHTML += `
-                <tr>
-                    <td>${c.id}</td>
-                    <td>${c.apellido}</td>
-                    <td>${c.nombre}</td>
-                    <td>${c.cuit}</td>
-                    <td>${c.tel}</td>
-                    <td><button class="btn-borrar" onclick="eliminarCliente(${c.id})">Eliminar</button></td>
-                </tr>`;
-            });
+            try {
+                const res = await fetch('/clientes');
+                if (!res.ok) throw new Error('Error en el servidor');
+                const clientes = await res.json();
+
+                tablaBody.innerHTML = '';
+                clientes.forEach(c => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${c.id}</td>
+                        <td>${c.apellido}</td>
+                        <td>${c.nombre}</td>
+                        <td>${c.cuit}</td>
+                        <td>${c.tel}</td>
+                        <td><button class="btn-borrar" onclick="eliminarCliente(${c.id})">Eliminar</button></td>
+                    `;
+                    tablaBody.appendChild(row);
+                });
+            } catch (err) {
+                console.error("Error al cargar:", err);
+            }
         }
 
-        // Guardar Cliente
+        // GUARDAR CLIENTE
         form.addEventListener('submit', async(e) => {
             e.preventDefault();
             const nuevo = {
@@ -163,27 +165,42 @@
                 cuit: document.getElementById('cuit').value,
                 tel: document.getElementById('tel').value
             };
-            await fetch('/add-cliente', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(nuevo)
-            });
-            form.reset();
-            cargarClientes();
+
+            try {
+                const res = await fetch('/add-cliente', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(nuevo)
+                });
+
+                if (res.ok) {
+                    form.reset();
+                    cargarClientes();
+                } else {
+                    alert("Error al guardar cliente");
+                }
+            } catch (err) {
+                console.error("Error al guardar:", err);
+            }
         });
 
-        // Eliminar Cliente
-        async function eliminarCliente(id) {
+        // ELIMINAR CLIENTE
+        window.eliminarCliente = async function(id) {
             if (confirm('¿Estás seguro de eliminar este cliente?')) {
-                await fetch(`/delete-cliente/${id}`, {
-                    method: 'DELETE'
-                });
-                cargarClientes();
+                try {
+                    await fetch(`/delete-cliente/${id}`, {
+                        method: 'DELETE'
+                    });
+                    cargarClientes();
+                } catch (err) {
+                    console.error("Error al eliminar:", err);
+                }
             }
         }
 
+        // Inicializar
         cargarClientes();
     </script>
 </body>
