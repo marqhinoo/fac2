@@ -6,13 +6,14 @@ const app = express();
 app.use(express.json());
 app.use(express.static(__dirname));
 
-// CONFIGURACIÓN MEJORADA PARA RENDER + SUPABASE
+// CONFIGURACIÓN REFORZADA PARA SSL (RENDER + SUPABASE)
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
     ssl: {
+        // Esto le dice a Node que acepte el certificado de Supabase 
+        // aunque sea "self-signed" (autofirmado)
         rejectUnauthorized: false
     },
-    // Ajustes para evitar errores de red y de tiempo de espera
     max: 10, // Máximo de conexiones simultáneas
     idleTimeoutMillis: 30000, // Tiempo para cerrar conexiones inactivas
     connectionTimeoutMillis: 10000, // 10 segundos antes de dar error de conexión
@@ -20,9 +21,9 @@ const pool = new Pool({
 
 const initDB = async() => {
     try {
-        // Intentamos una consulta simple para verificar la conexión
+        // Verificación inicial de conexión
         const res = await pool.query('SELECT NOW()');
-        console.log("Conexión exitosa con Supabase establecida el:", res.rows[0].now);
+        console.log("✅ Conexión exitosa con Supabase establecida el:", res.rows[0].now);
 
         await pool.query(`
             CREATE TABLE IF NOT EXISTS clientes (
@@ -33,7 +34,7 @@ const initDB = async() => {
                 tel TEXT
             )
         `);
-        console.log("Tabla 'clientes' verificada/creada correctamente.");
+        console.log("📁 Tabla 'clientes' verificada/creada correctamente.");
     } catch (err) {
         console.error("❌ Error crítico de conexión a la DB:", err.message);
     }
