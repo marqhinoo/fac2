@@ -4,20 +4,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestión de Clientes</title>
+    <title>Gestión de Clientes - Panel Pro</title>
     <style>
         body {
-            font-family: 'Segoe UI', sans-serif;
-            margin: 40px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 10px;
             background-color: #f4f4f9;
             color: #333;
         }
         
         .container {
             max-width: 900px;
-            margin: auto;
+            margin: 20px auto;
             background: white;
-            padding: 25px;
+            padding: 20px;
             border-radius: 12px;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
         }
@@ -25,44 +25,65 @@
         h2 {
             border-bottom: 2px solid #eee;
             padding-bottom: 10px;
+            color: #2c3e50;
+            font-size: 1.5rem;
         }
+        /* FORMULARIO ADAPTATIVO */
         
         form {
             display: grid;
             gap: 15px;
             grid-template-columns: 1fr 1fr;
+            /* 2 columnas en PC */
             margin-bottom: 30px;
             background: #f9f9f9;
             padding: 20px;
             border-radius: 8px;
+            border: 1px solid #ddd;
         }
         
         input {
             padding: 12px;
-            border: 1px solid #ddd;
+            border: 1px solid #ccc;
             border-radius: 6px;
-            font-size: 14px;
+            font-size: 16px;
+            /* Evita zoom automático en iPhone */
+            width: 100%;
+            box-sizing: border-box;
         }
         
         button.btn-guardar {
-            padding: 12px;
+            padding: 15px;
             background-color: #28a745;
             color: white;
             border: none;
             border-radius: 6px;
             cursor: pointer;
             grid-column: span 2;
+            /* Ocupa las dos columnas */
             font-weight: bold;
+            font-size: 16px;
+            transition: background 0.3s;
         }
         
         button.btn-guardar:hover {
             background-color: #218838;
         }
+        /* CONTENEDOR DE TABLA PARA SCROLL MÓVIL */
+        
+        .table-container {
+            width: 100%;
+            overflow-x: auto;
+            margin-top: 20px;
+            border-radius: 8px;
+            border: 1px solid #eee;
+        }
         
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 20px;
+            min-width: 600px;
+            /* Evita que la tabla se amontone */
         }
         
         th,
@@ -77,20 +98,40 @@
             color: #666;
             text-transform: uppercase;
             font-size: 12px;
+            letter-spacing: 1px;
         }
         
         .btn-borrar {
             background-color: #ff4d4d;
             color: white;
             border: none;
-            padding: 6px 12px;
+            padding: 8px 12px;
             border-radius: 4px;
             cursor: pointer;
-            font-size: 12px;
+            font-size: 13px;
         }
         
         .btn-borrar:hover {
             background-color: #cc0000;
+        }
+        /* --- MEDIA QUERIES PARA CELULARES --- */
+        
+        @media (max-width: 600px) {
+            form {
+                grid-template-columns: 1fr;
+                /* Una sola columna en móviles */
+                padding: 15px;
+            }
+            button.btn-guardar {
+                grid-column: span 1;
+            }
+            .container {
+                margin: 5px;
+                padding: 15px;
+            }
+            h2 {
+                font-size: 1.2rem;
+            }
         }
     </style>
 </head>
@@ -108,34 +149,38 @@
         </form>
 
         <h2>Lista de Clientes</h2>
-        <table id="tablaClientes">
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Apellido</th>
-                    <th>Nombre</th>
-                    <th>CUIT</th>
-                    <th>Teléfono</th>
-                    <th>Acción</th>
-                </tr>
-            </thead>
-            <tbody></tbody>
-        </table>
+        <div class="table-container">
+            <table id="tablaClientes">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Apellido</th>
+                        <th>Nombre</th>
+                        <th>CUIT</th>
+                        <th>Teléfono</th>
+                        <th>Acción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                </tbody>
+            </table>
+        </div>
     </div>
 
     <script>
         const form = document.getElementById('clienteForm');
         const tablaBody = document.querySelector('#tablaClientes tbody');
 
-        const validarNumeros = (e) => e.target.value = e.target.value.replace(/\D/g, '');
-        document.getElementById('cuit').addEventListener('input', validarNumeros);
-        document.getElementById('tel').addEventListener('input', validarNumeros);
+        // Solo permitir números en CUIT y Teléfono
+        const soloNumeros = (e) => e.target.value = e.target.value.replace(/\D/g, '');
+        document.getElementById('cuit').addEventListener('input', soloNumeros);
+        document.getElementById('tel').addEventListener('input', soloNumeros);
 
-        // CARGAR CLIENTES
+        // FUNCIÓN CARGAR CLIENTES
         async function cargarClientes() {
             try {
                 const res = await fetch('/clientes');
-                if (!res.ok) throw new Error('Error en el servidor');
+                if (!res.ok) throw new Error('Error al obtener datos');
                 const clientes = await res.json();
 
                 tablaBody.innerHTML = '';
@@ -152,11 +197,11 @@
                     tablaBody.appendChild(row);
                 });
             } catch (err) {
-                console.error("Error al cargar:", err);
+                console.error("Error al cargar la lista:", err);
             }
         }
 
-        // GUARDAR CLIENTE
+        // FUNCIÓN GUARDAR CLIENTE
         form.addEventListener('submit', async(e) => {
             e.preventDefault();
             const nuevo = {
@@ -179,28 +224,31 @@
                     form.reset();
                     cargarClientes();
                 } else {
-                    alert("Error al guardar cliente");
+                    const errorMsg = await res.text();
+                    alert("Error al guardar: " + errorMsg);
                 }
             } catch (err) {
-                console.error("Error al guardar:", err);
+                alert("Error de conexión con el servidor");
             }
         });
 
-        // ELIMINAR CLIENTE
+        // FUNCIÓN ELIMINAR CLIENTE
         window.eliminarCliente = async function(id) {
-            if (confirm('¿Estás seguro de eliminar este cliente?')) {
+            if (confirm('¿Desea eliminar este cliente?')) {
                 try {
-                    await fetch(`/delete-cliente/${id}`, {
+                    const res = await fetch(`/delete-cliente/${id}`, {
                         method: 'DELETE'
                     });
-                    cargarClientes();
+                    if (res.ok) {
+                        cargarClientes();
+                    }
                 } catch (err) {
-                    console.error("Error al eliminar:", err);
+                    console.error("Error al borrar:", err);
                 }
             }
         }
 
-        // Inicializar
+        // Carga inicial
         cargarClientes();
     </script>
 </body>
